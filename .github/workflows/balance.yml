@@ -1,1 +1,44 @@
 
+name: HarNet Balance Bot
+
+on:
+  schedule:
+    # Каждый день в 09:00 по Киеву (UTC+3 → 06:00 UTC)
+    - cron: '0 6 * * *'
+    # Слушаем кнопки каждые 2 минуты (реакция на нажатие ~0-2 мин)
+    - cron: '*/2 * * * *'
+  workflow_dispatch:
+
+env:
+  HARNET_USERPASS:    ${{ secrets.HARNET_USERPASS }}
+  HARNET_USERLOGNAME: ${{ secrets.HARNET_USERLOGNAME }}
+  HARNET_PHPSESSID:   ${{ secrets.HARNET_PHPSESSID }}
+  TG_BOT_TOKEN:       ${{ secrets.TG_BOT_TOKEN }}
+  TG_CHAT_ID:         ${{ secrets.TG_CHAT_ID }}
+
+jobs:
+  daily-notify:
+    # Запускается только в 09:00 или вручную
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '0 6 * * *'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install requests
+      - name: Отправить ежедневный баланс
+        run: python check_balance.py scheduled
+
+  listen-buttons:
+    # Запускается каждые 2 минуты — ловит нажатия кнопки
+    if: github.event.schedule == '*/2 * * * *'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install requests
+      - name: Слушать нажатия кнопки (55 сек)
+        run: python check_balance.py bot
